@@ -30,7 +30,7 @@ class AMQPClient(object):
         self.events_queue = None
         self.logs_queue = None
         self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host=get_manager_ip()))
+            pika.ConnectionParameters(host=get_manager_ip(bracketed_ipv6=False)))
         settings = {
             'auto_delete': True,
             'durable': True,

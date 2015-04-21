@@ -74,11 +74,20 @@ def get_local_ip():
     return os.environ[LOCAL_IP_KEY]
 
 
-def get_manager_ip():
+def get_manager_ip(bracketed_ipv6=True):
     """
     Returns the IP address of manager inside the management network.
     """
-    return os.environ[MANAGER_IP_KEY]
+    ip = os.environ[MANAGER_IP_KEY]
+    if bracketed_ipv6:
+        if ip.count(':') >= 2:
+            if not ip.startswith('['):
+                ip = '[{ip}'.format(ip=ip)
+            if not ip.endswith(']'):
+                ip = '{ip}]'.format(ip=ip)
+    else:
+        ip = ip.strip('[]')
+    return ip
 
 
 def get_manager_file_server_blueprints_root_url():
