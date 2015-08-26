@@ -78,5 +78,13 @@ class AMQPClient(object):
                                         body=json.dumps(item))
 
 
-def create_client(amqp_host=None):
-    return AMQPClient(amqp_host)
+def create_client(amqp_host=None,
+                  username='guest',
+                  password='guest',
+                  ssl_cert_path=None):
+    return AMQPClient(
+        amqp_host=amqp_host,
+        username=username,
+        password=password,
+        ssl_cert_path=ssl_cert_path,
+    )
