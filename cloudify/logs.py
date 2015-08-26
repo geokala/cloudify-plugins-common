@@ -23,6 +23,7 @@ import datetime
 
 from cloudify.amqp_client import create_client
 from cloudify.event import Event
+from cloudify.utils import get_manager_ip
 
 EVENT_CLASS = Event
 
@@ -103,7 +104,7 @@ class CloudifyBaseLoggingHandler(logging.Handler):
                 'text': message
             }
         }
-        self.out_func(log)
+        self.out_func(log, ctx=self.context)
 
 
 class CloudifyPluginLoggingHandler(CloudifyBaseLoggingHandler):
@@ -266,10 +267,10 @@ def populate_base_item(item, message_type):
     item['type'] = message_type
 
 
-def amqp_event_out(event):
+def amqp_event_out(event, ctx=None):
     try:
         populate_base_item(event, 'cloudify_event')
-        _amqp_client().publish_event(event)
+        _amqp_client(ctx).publish_event(event)
     except BaseException as e:
         error_logger = logging.getLogger('cloudify_events')
         error_logger.warning('Error publishing event to RabbitMQ ['
@@ -277,10 +278,10 @@ def amqp_event_out(event):
                              .format(e.message, json.dumps(event)))
 
 
-def amqp_log_out(log):
+def amqp_log_out(log, ctx=None):
     try:
         populate_base_item(log, 'cloudify_log')
-        _amqp_client().publish_log(log)
+        _amqp_client(ctx).publish_log(log)
     except BaseException as e:
         error_logger = logging.getLogger('cloudify_celery')
         error_logger.warning('Error publishing log to RabbitMQ ['
@@ -288,12 +289,12 @@ def amqp_log_out(log):
                              .format(e.message, json.dumps(log)))
 
 
-def stdout_event_out(event):
+def stdout_event_out(event, ctx=None):
     populate_base_item(event, 'cloudify_event')
     sys.stdout.write('{0}\n'.format(create_event_message_prefix(event)))
 
 
-def stdout_log_out(log):
+def stdout_log_out(log, ctx=None):
     populate_base_item(log, 'cloudify_log')
     sys.stdout.write('{0}\n'.format(create_event_message_prefix(log)))
 
@@ -312,14 +313,37 @@ def _is_system_workflow(ctx):
     return workflow_id in (
         '_start_deployment_environment', '_stop_deployment_environment')
 
+def _ensure_amqp_ssl_cert(ssl_cert):
+    """
+    Get the path to the ssl cert, creating or overwriting it if necessary.
 
-def _amqp_client():
+    :return: The path to the AMQP SSL certificate.
+    """
+    ssl_cert_path = os.path.join(os.getcwd(), 'amqp_ssl_cert.pub')
+
+    with open(ssl_cert_path, 'w') as cert_handle:
+        cert_handle.write(ssl_cert)
+
+    return ssl_cert_path
+
+def _amqp_client(ctx=None):
     """
     Get an AMQPClient for the current thread. If non currently exists,
     create one.
 
     :return: An AMQPClient belonging to the current thread
     """
+    if ctx is not None:
+        broker_user = ctx.bootstrap_context.cloudify_agent.broker_user
+        broker_pass = ctx.bootstrap_context.cloudify_agent.broker_pass
+        broker_ssl_cert = ctx.bootstrap_context.cloudify_agent.broker_ssl_cert
+
+    ssl_cert_path = _ensure_amqp_ssl_cert(broker_ssl_cert)
+
     if not hasattr(clients, 'amqp_client'):
-        clients.amqp_client = create_client()
+        clients.amqp_client = create_client(
+            username=broker_user,
+            password=broker_pass,
+            ssl_cert_path=ssl_cert_path,
+        )
     return clients.amqp_client
