@@ -18,6 +18,7 @@ import warnings
 from cloudify.endpoint import ManagerEndpoint, LocalEndpoint
 from cloudify.logs import init_cloudify_logger
 from cloudify import exceptions
+from collections import namedtuple
 
 
 DEPLOYMENT = 'deployment'
@@ -117,62 +118,20 @@ class BootstrapContext(object):
             """
             return self._policy_engine.get('start_timeout')
 
-    class CloudifyAgent(object):
-        """Cloudify agent related bootstrap context properties."""
-
-        def __init__(self, cloudify_agent):
-            self._cloudify_agent = cloudify_agent
-
-        @property
-        def min_workers(self):
-            """Returns the minimum number of workers for agent hosts."""
-            return self._cloudify_agent.get('min_workers')
-
-        @property
-        def max_workers(self):
-            """Returns the maximum number of workers for agent hosts."""
-            return self._cloudify_agent.get('max_workers')
-
-        @property
-        def user(self):
-            """
-            Returns the username used when SSH-ing during agent
-            installation.
-            """
-            return self._cloudify_agent.get('user')
-
-        @property
-        def remote_execution_port(self):
-            """
-            Returns the port used when SSH-ing during agent
-            installation.
-            """
-            return self._cloudify_agent.get('remote_execution_port')
-
-        @property
-        def agent_key_path(self):
-            """
-            Returns the path to the key file on the management machine
-            used when SSH-ing during agent installation.
-            """
-            return self._cloudify_agent.get('agent_key_path')
-
     def __init__(self, bootstrap_context):
         self._bootstrap_context = bootstrap_context
 
         cloudify_agent = bootstrap_context.get('cloudify_agent', {})
+        for prop in ('min_workers', 'max_workers', 'user',
+                     'remote_execution_port', 'agent_key_path'):
+            if prop not in cloudify_agent.keys():
+                cloudify_agent[prop] = None
+
+        CloudifyAgent = namedtuple('CloudifyAgent', cloudify_agent.keys())
+        self.cloudify_agent = CloudifyAgent(**cloudify_agent)
+
         policy_engine = bootstrap_context.get('policy_engine', {})
-        self._cloudify_agent = self.CloudifyAgent(cloudify_agent)
         self._policy_engine = self.PolicyEngine(policy_engine)
-
-    @property
-    def cloudify_agent(self):
-        """
-        Returns Cloudify agent related bootstrap context data
-
-        :rtype: CloudifyAgent
-        """
-        return self._cloudify_agent
 
     @property
     def policy_engine(self):
