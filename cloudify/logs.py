@@ -256,7 +256,7 @@ def _send_event(ctx, context_type, event_type,
             'arguments': args
         }
     }
-    out_func(event)
+    out_func(event, ctx=ctx)
 
 
 def populate_base_item(item, message_type):
