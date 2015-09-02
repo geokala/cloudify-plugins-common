@@ -327,6 +327,20 @@ def _ensure_amqp_ssl_cert(ssl_cert):
 
     return ssl_cert_path
 
+def _get_agent_dict(agent):
+    """
+    Convert the cloudify agent to a dict.
+
+    :return: The cloudify agent as a dict
+    """
+    try:
+        cloudify_agent = vars(agent)
+    except TypeError:
+        # On 2.7.4 vars may fail with a TypeError, use
+        # old _asdict approach (obsolete in 3)
+        cloudify_agent = agent._asdict()
+    return cloudify_agent
+
 def _amqp_client(ctx=None):
     """
     Get an AMQPClient for the current thread. If non currently exists,
@@ -335,9 +349,10 @@ def _amqp_client(ctx=None):
     :return: An AMQPClient belonging to the current thread
     """
     if ctx is not None:
-        broker_user = ctx.bootstrap_context.cloudify_agent.broker_user
-        broker_pass = ctx.bootstrap_context.cloudify_agent.broker_pass
-        broker_ssl_cert = ctx.bootstrap_context.cloudify_agent.broker_ssl_cert
+        agent = _get_agent_dict(ctx.bootstrap_context.cloudify_agent)
+        broker_user = agent['broker_user']
+        broker_pass = agent['broker_pass']
+        broker_ssl_cert = agent['broker_ssl_cert']
 
     ssl_cert_path = _ensure_amqp_ssl_cert(broker_ssl_cert)
 
