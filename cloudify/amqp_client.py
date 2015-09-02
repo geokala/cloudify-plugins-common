@@ -28,7 +28,7 @@ class AMQPClient(object):
 
     def __init__(self, amqp_host=None,
                  username='guest', password='guest',
-                 ssl_cert_path=None):
+                 ssl_cert_path=''):
         if amqp_host is None:
             amqp_host = get_manager_ip()
 
@@ -39,7 +39,7 @@ class AMQPClient(object):
 
         ssl_active = False
         ssl_options = None
-        if ssl_cert_path is not None:
+        if ssl_cert_path != '':
             ssl_active = True
             ssl_options = {
                 'ca_certs': ssl_cert_path,
