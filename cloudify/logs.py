@@ -318,8 +318,12 @@ def _ensure_amqp_ssl_cert(ssl_cert):
     """
     Get the path to the ssl cert, creating or overwriting it if necessary.
 
-    :return: The path to the AMQP SSL certificate.
+    :return: The path to the AMQP SSL certificate, or an empty string if the
+             cert is empty.
     """
+    if ssl_cert == '' or ssl_cert is None:
+        return ''
+
     ssl_cert_path = os.path.join(os.getcwd(), 'amqp_ssl_cert.pub')
 
     with open(ssl_cert_path, 'w') as cert_handle:
