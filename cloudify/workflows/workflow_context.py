@@ -44,6 +44,7 @@ from cloudify.logs import (CloudifyWorkflowLoggingHandler,
                            init_cloudify_logger,
                            send_workflow_event,
                            send_workflow_node_event)
+from cloudify.endpoint import ManagerEndpoint, LocalEndpoint
 
 
 DEFAULT_LOCAL_TASK_THREAD_POOL_SIZE = 1
@@ -467,7 +468,19 @@ class CloudifyWorkflowContext(WorkflowNodesAndInstancesContainer):
 
         self.blueprint = context.BlueprintContext(self._context)
         self.deployment = WorkflowDeploymentContext(self._context, self)
-        self.bootstrap_context = context.BootstrapContext(self._context)
+
+        self._local = ctx.get('local', False)
+        if self._local:
+            # there are times when this instance is instantiated merely for
+            # accessing the attributes so we can tolerate no storage (such is
+            # the case in logging)
+            self._endpoint = LocalEndpoint(self, ctx.get('storage'))
+        else:
+            self._endpoint = ManagerEndpoint(self._context)
+
+        self.bootstrap_context = context.BootstrapContext(
+            self._endpoint.get_bootstrap_context(),
+        )
 
         if self.local:
             storage = ctx.pop('storage')
