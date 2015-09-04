@@ -85,6 +85,7 @@ class CloudifyBaseLoggingHandler(logging.Handler):
 
     def __init__(self, ctx, out_func, message_context_builder):
         logging.Handler.__init__(self)
+        self.ctx = ctx
         self.context = message_context_builder(ctx)
         if _is_system_workflow(ctx):
             out_func = stdout_log_out
@@ -105,7 +106,7 @@ class CloudifyBaseLoggingHandler(logging.Handler):
                 'text': message
             }
         }
-        self.out_func(log, ctx=self.context)
+        self.out_func(log, ctx=self.ctx)
 
 
 class CloudifyPluginLoggingHandler(CloudifyBaseLoggingHandler):
