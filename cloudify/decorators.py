@@ -113,7 +113,7 @@ def operation(func=None, **arguments):
                 ctx = context.CloudifyContext(ctx)
                 # remove __cloudify_context
                 raw_context = kwargs.pop(CLOUDIFY_CONTEXT_PROPERTY_KEY, {})
-                if ctx.task_target is None:
+                if ctx._local:
                     # task is local (not through celery) so we need to
                     # clone kwarg
                     kwargs = copy.deepcopy(kwargs)
