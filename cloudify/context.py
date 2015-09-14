@@ -157,6 +157,20 @@ class BootstrapContext(object):
             """
             return self._cloudify_agent.get('agent_key_path')
 
+        @property
+        def broker_user(self):
+            """
+            Returns the username for connecting to rabbit.
+            """
+            return self._cloudify_agent.get('broker_user', 'testuser')
+
+        @property
+        def broker_pass(self):
+            """
+            Returns the password for connecting to rabbit.
+            """
+            return self._cloudify_agent.get('broker_pass', 'testpass')
+
     def __init__(self, bootstrap_context):
         self._bootstrap_context = bootstrap_context
 

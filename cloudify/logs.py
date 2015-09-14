@@ -88,6 +88,16 @@ class CloudifyBaseLoggingHandler(logging.Handler):
             out_func = stdout_log_out
         elif out_func is None:
             out_func = amqp_log_out
+
+        if out_func == amqp_log_out:
+            bootstrap_agent = ctx.bootstrap_context.cloudify_agent
+            self.amqp_settings = {
+                'amqp_user': bootstrap_agent.broker_user,
+                'amqp_pass': bootstrap_agent.broker_pass,
+            }
+        else:
+            self.amqp_settings = {}
+
         self.out_func = out_func
 
     def flush(self):
@@ -103,7 +113,11 @@ class CloudifyBaseLoggingHandler(logging.Handler):
                 'text': message
             }
         }
-        self.out_func(log)
+
+        if self.out_func == amqp_log_out:
+            self.out_func(log, self.amqp_settings)
+        else:
+            self.out_func(log)
 
 
 class CloudifyPluginLoggingHandler(CloudifyBaseLoggingHandler):
@@ -255,7 +269,16 @@ def _send_event(ctx, context_type, event_type,
             'arguments': args
         }
     }
-    out_func(event)
+
+    if out_func == amqp_event_out:
+        bootstrap_agent = ctx.bootstrap_context.cloudify_agent
+        amqp_settings = {
+            'amqp_user': bootstrap_agent.broker_user,
+            'amqp_pass': bootstrap_agent.broker_pass,
+        }
+        out_func(event, amqp_settings)
+    else:
+        out_func(event)
 
 
 def populate_base_item(item, message_type):
@@ -266,10 +289,10 @@ def populate_base_item(item, message_type):
     item['type'] = message_type
 
 
-def amqp_event_out(event):
+def amqp_event_out(event, amqp_settings={}):
     try:
         populate_base_item(event, 'cloudify_event')
-        _amqp_client().publish_event(event)
+        _amqp_client(**amqp_settings).publish_event(event)
     except BaseException as e:
         error_logger = logging.getLogger('cloudify_events')
         error_logger.warning('Error publishing event to RabbitMQ ['
@@ -277,10 +300,10 @@ def amqp_event_out(event):
                              .format(e.message, json.dumps(event)))
 
 
-def amqp_log_out(log):
+def amqp_log_out(log, amqp_settings={}):
     try:
         populate_base_item(log, 'cloudify_log')
-        _amqp_client().publish_log(log)
+        _amqp_client(**amqp_settings).publish_log(log)
     except BaseException as e:
         error_logger = logging.getLogger('cloudify_celery')
         error_logger.warning('Error publishing log to RabbitMQ ['
@@ -313,13 +336,22 @@ def _is_system_workflow(ctx):
         '_start_deployment_environment', '_stop_deployment_environment')
 
 
-def _amqp_client():
+def _amqp_client(amqp_host=None,
+                 amqp_user='testuser',
+                 amqp_pass='testpass'):
     """
     Get an AMQPClient for the current thread. If non currently exists,
     create one.
 
+    :param amqp_host: The amqp host to use
+    :param amqp_user: The amqp username to use
+    :param amqp_pass: The amqp password to use
+
     :return: An AMQPClient belonging to the current thread
     """
     if not hasattr(clients, 'amqp_client'):
-        clients.amqp_client = create_client()
+        clients.amqp_client = create_client(
+            amqp_host=amqp_host,
+            amqp_user=amqp_user,
+            amqp_pass=amqp_pass)
     return clients.amqp_client

@@ -44,6 +44,7 @@ from cloudify.logs import (CloudifyWorkflowLoggingHandler,
                            init_cloudify_logger,
                            send_workflow_event,
                            send_workflow_node_event)
+from cloudify.endpoint import ManagerEndpoint, LocalEndpoint
 
 
 DEFAULT_LOCAL_TASK_THREAD_POOL_SIZE = 1
@@ -63,6 +64,7 @@ class CloudifyWorkflowRelationshipInstance(object):
     def __init__(self, ctx, node_instance, nodes_and_instances,
                  relationship_instance):
         self.ctx = ctx
+        self.bootstrap_context = ctx.bootstrap_context
         self.node_instance = node_instance
         self._nodes_and_instances = nodes_and_instances
         self._relationship_instance = relationship_instance
@@ -140,6 +142,7 @@ class CloudifyWorkflowRelationship(object):
 
     def __init__(self, ctx, node, nodes_and_instances, relationship):
         self.ctx = ctx
+        self.bootstrap_context = ctx.bootstrap_context
         self.node = node
         self._nodes_and_instances = nodes_and_instances
         self._relationship = relationship
@@ -184,6 +187,7 @@ class CloudifyWorkflowNodeInstance(object):
 
     def __init__(self, ctx, node, node_instance, nodes_and_instances):
         self.ctx = ctx
+        self.bootstrap_context = ctx.bootstrap_context
         self._node = node
         self._node_instance = node_instance
         # Directly contained node instances. Filled in the context's __init__()
@@ -330,6 +334,7 @@ class CloudifyWorkflowNode(object):
 
     def __init__(self, ctx, node, nodes_and_instances):
         self.ctx = ctx
+        self.bootstrap_context = ctx.bootstrap_context
         self._node = node
         self._relationships = dict(
             (relationship['target_id'], CloudifyWorkflowRelationship(
@@ -467,6 +472,19 @@ class CloudifyWorkflowContext(WorkflowNodesAndInstancesContainer):
 
         self.blueprint = context.BlueprintContext(self._context)
         self.deployment = WorkflowDeploymentContext(self._context, self)
+
+        self._local = ctx.get('local', False)
+        if self._local:
+            # there are times when this instance is instantiated merely for
+            # accessing the attributes so we can tolerate no storage (such is
+            # the case in logging)
+            self._endpoint = LocalEndpoint(self, ctx.get('storage'))
+        else:
+            self._endpoint = ManagerEndpoint(self._context)
+
+        self.bootstrap_context = context.BootstrapContext(
+            self._endpoint.get_bootstrap_context(),
+        )
 
         if self.local:
             storage = ctx.pop('storage')
