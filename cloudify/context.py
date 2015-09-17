@@ -171,6 +171,13 @@ class BootstrapContext(object):
             """
             return self._cloudify_agent.get('broker_pass', 'testpass')
 
+        @property
+        def broker_ssl_cert(self):
+            """
+            Returns the SSL public cert for connecting to rabbit.
+            """
+            return self._cloudify_agent.get('broker_ssl_cert', '')
+
     def __init__(self, bootstrap_context):
         self._bootstrap_context = bootstrap_context
 

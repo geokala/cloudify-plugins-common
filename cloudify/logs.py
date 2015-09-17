@@ -91,10 +91,28 @@ class CloudifyBaseLoggingHandler(logging.Handler):
 
         if out_func == amqp_log_out:
             bootstrap_agent = ctx.bootstrap_context.cloudify_agent
+            try:
+                # If we're in an environment with celery we should have a
+                # worker configuration, but we'll check for backwards
+                # compatibility
+                import worker_conf
+                broker_cert_path = worker_conf.broker_cert_path
+            except (ImportError, AttributeError):
+                broker_cert_path = ''
+
+            if broker_cert_path == '':
+                # No SSL for rabbit
+                broker_port = 5672
+            else:
+                broker_port = 5671
+
             self.amqp_settings = {
                 'amqp_user': bootstrap_agent.broker_user,
                 'amqp_pass': bootstrap_agent.broker_pass,
+                'amqp_port': broker_port,
+                'ssl_cert_path': broker_cert_path,
             }
+
         else:
             self.amqp_settings = {}
 
@@ -337,8 +355,10 @@ def _is_system_workflow(ctx):
 
 
 def _amqp_client(amqp_host=None,
+                 amqp_port=5672,
                  amqp_user='testuser',
-                 amqp_pass='testpass'):
+                 amqp_pass='testpass',
+                 ssl_cert_path=''):
     """
     Get an AMQPClient for the current thread. If non currently exists,
     create one.
@@ -352,6 +372,8 @@ def _amqp_client(amqp_host=None,
     if not hasattr(clients, 'amqp_client'):
         clients.amqp_client = create_client(
             amqp_host=amqp_host,
+            amqp_port=amqp_port,
             amqp_user=amqp_user,
-            amqp_pass=amqp_pass)
+            amqp_pass=amqp_pass,
+            ssl_cert_path=ssl_cert_path)
     return clients.amqp_client

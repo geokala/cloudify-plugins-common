@@ -17,6 +17,7 @@
 import json
 
 import pika
+import ssl
 
 from cloudify.utils import get_manager_ip
 
@@ -28,8 +29,10 @@ class AMQPClient(object):
 
     def __init__(self,
                  amqp_host=None,
+                 amqp_port=5672,
                  amqp_user='testuser',
-                 amqp_pass='testpass'):
+                 amqp_pass='testpass',
+                 ssl_cert_path=''):
         if amqp_host is None:
             amqp_host = get_manager_ip()
 
@@ -41,10 +44,23 @@ class AMQPClient(object):
             password=amqp_pass,
         )
 
+        if ssl_cert_path != '':
+            ssl_enabled = True
+            ssl_options = {
+                'ca_certs': ssl_cert_path,
+                'cert_reqs': ssl.CERT_REQUIRED,
+            }
+        else:
+            ssl_enabled = False
+            ssl_options = {}
+
         self.connection = pika.BlockingConnection(
             pika.ConnectionParameters(
                 host=amqp_host,
+                port=amqp_port,
                 credentials=credentials,
+                ssl=ssl_enabled,
+                ssl_options=ssl_options,
             )
         )
         settings = {
@@ -73,10 +89,14 @@ class AMQPClient(object):
 
 
 def create_client(amqp_host=None,
+                  amqp_port=5672,
                   amqp_user='testuser',
-                  amqp_pass='testpass'):
+                  amqp_pass='testpass',
+                  ssl_cert_path=''):
     return AMQPClient(
         amqp_host=amqp_host,
+        amqp_port=amqp_port,
         amqp_user=amqp_user,
         amqp_pass=amqp_pass,
+        ssl_cert_path=ssl_cert_path,
     )
