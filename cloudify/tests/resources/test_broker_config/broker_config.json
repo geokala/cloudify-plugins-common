@@ -1,0 +1,7 @@
+{
+  "broker_ssl_enabled": true,
+  "broker_cert_path": "thispath",
+  "broker_username": "nothere",
+  "broker_password": "everywhere",
+  "broker_hostname": "newhost"
+}

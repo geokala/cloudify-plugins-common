@@ -161,6 +161,36 @@ class NodeContextTests(testtools.TestCase):
                              instance.runtime_properties['type_hierarchy'])
 
 
+class BootstrapContextTests(testtools.TestCase):
+    def test_broker_security_username_is_in_agent(self):
+        agent = context.BootstrapContext.CloudifyAgent
+        self.assertIn(
+            'broker_user',
+            dir(agent),
+        )
+
+    def test_broker_security_password_is_in_agent(self):
+        agent = context.BootstrapContext.CloudifyAgent
+        self.assertIn(
+            'broker_pass',
+            dir(agent),
+        )
+
+    def test_broker_security_ssl_flag_is_in_agent(self):
+        agent = context.BootstrapContext.CloudifyAgent
+        self.assertIn(
+            'broker_ssl_enabled',
+            dir(agent),
+        )
+
+    def test_broker_security_ssl_cert_is_in_agent(self):
+        agent = context.BootstrapContext.CloudifyAgent
+        self.assertIn(
+            'broker_ssl_cert',
+            dir(agent),
+        )
+
+
 class GetResourceTemplateTests(testtools.TestCase):
 
     def __init__(self, *args, **kwargs):
